@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Какво жилище мога да си позволя? · Ипотечен калкулатор</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#171a2b; --panel-2:#1f2338; --line:#2a2f4a;
+    --text:#e8eaf2; --muted:#9aa0bd; --accent:#5b8cff; --accent-2:#34d399;
+    --warn:#fbbf24; --danger:#f87171; --radius:14px;
+    --food:#f97316; --util:#38bdf8; --trans:#a78bfa; --other:#f472b6;
+    --fixed:#facc15; --mort:#34d399; --unused:#475569;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,#1c2440 0,transparent 60%),var(--bg);
+    color:var(--text); line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:28px 20px 60px}
+  header h1{font-size:26px; margin:0 0 4px; letter-spacing:-.02em}
+  header p{margin:0; color:var(--muted); font-size:14px}
+  .grid{display:grid; grid-template-columns:minmax(0,420px) minmax(0,1fr); gap:22px; margin-top:24px; align-items:start}
+  @media (max-width:920px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px 18px; box-shadow:var(--shadow)}
+  .card + .card{margin-top:18px}
+  h2{font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 14px; font-weight:700}
+  label{display:block; font-size:13px; color:var(--muted); margin:0 0 6px}
+  .row{display:flex; gap:12px; align-items:stretch}
+  .row > .field{flex:1; min-width:0; display:flex; flex-direction:column}
+  .row > .field > .suffix, .row > .field > select{margin-top:auto}
+  .field{margin-bottom:14px}
+  input[type=number], input[type=text], select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:10px 12px; font-size:15px; outline:none; transition:border-color .15s;
+  }
+  input:focus, select:focus{border-color:var(--accent)}
+  .suffix{position:relative}
+  .suffix span{position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none}
+  .suffix input{padding-right:36px}
+  /* плъзгачи */
+  .slider-row{display:flex; align-items:center; gap:12px; margin-bottom:12px}
+  .slider-row .lbl{flex:1 1 auto; font-size:14px}
+  .slider-row .lbl b{display:block; font-size:11px; color:var(--muted); font-weight:500; margin-top:1px}
+  .slider-row input[type=range]{flex:1 1 120px; accent-color:var(--accent); height:4px}
+  .slider-row .val{flex:0 0 96px; text-align:right; font-variant-numeric:tabular-nums}
+  .slider-row .val .pct{font-weight:700}
+  .slider-row .val .eur{display:block; font-size:11px; color:var(--muted)}
+  /* фиксирани разходи */
+  .fixed-row{display:flex; gap:8px; margin-bottom:8px; align-items:center}
+  .fixed-row input.fx-label{flex:2}
+  .fixed-row .suffix{flex:1}
+  .fixed-row button{flex:0 0 auto}
+  .btn{background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:10px;
+    padding:9px 12px; font-size:14px; cursor:pointer; transition:.15s}
+  .btn:hover{border-color:var(--accent)}
+  .btn-ghost{background:transparent; color:var(--accent); border-style:dashed; width:100%; margin-top:4px}
+  .btn-x{background:transparent; border:1px solid var(--line); color:var(--muted); width:38px; height:38px; border-radius:10px; cursor:pointer; font-size:16px}
+  .btn-x:hover{border-color:var(--danger); color:var(--danger)}
+  .hint{font-size:12px; color:var(--muted); margin:-2px 0 10px}
+  /* резултати */
+  .headline{text-align:center; padding:8px 0 4px}
+  .headline .price{font-size:46px; font-weight:800; letter-spacing:-.03em; line-height:1.05; color:#fff}
+  .headline .price small{font-size:18px; color:var(--muted); font-weight:600}
+  .headline .apt{font-size:17px; margin-top:6px; color:var(--accent-2); font-weight:600}
+  .headline .apt .room{color:var(--text)}
+  .stats{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:16px}
+  @media (max-width:520px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:11px 12px}
+  .stat .k{font-size:12px; color:var(--muted)}
+  .stat .v{font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px}
+  .note{display:flex; gap:9px; align-items:flex-start; border-radius:10px; padding:11px 13px; margin-top:14px; font-size:13.5px}
+  .note .ic{flex:0 0 auto; font-size:15px; line-height:1.3}
+  .note.info{background:rgba(91,140,255,.1); border:1px solid rgba(91,140,255,.35)}
+  .note.bank{background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.4)}
+  .note.danger{background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.45)}
+  /* разбивка */
+  .bar{display:flex; height:26px; border-radius:8px; overflow:hidden; margin:6px 0 12px; background:var(--panel-2)}
+  .bar > span{display:block; height:100%}
+  .legend{display:flex; flex-wrap:wrap; gap:10px 16px; font-size:12.5px}
+  .legend .item{display:flex; align-items:center; gap:6px; color:var(--muted)}
+  .legend .dot{width:11px; height:11px; border-radius:3px; flex:0 0 auto}
+  .legend b{color:var(--text); font-weight:600}
+  /* графика */
+  .chart-wrap{position:relative}
+  svg{display:block; width:100%; height:auto}
+  /* таблица */
+  .tbl-label{margin-top:14px; margin-bottom:8px; font-size:13px; color:var(--muted); font-weight:600}
+  table{width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; font-variant-numeric:tabular-nums}
+  th,td{text-align:right; padding:6px 8px; border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted); font-weight:600; position:sticky; top:0; background:var(--panel)}
+  .tbl-scroll{max-height:320px; overflow:auto; border:1px solid var(--line); border-radius:10px}
+  footer{margin-top:26px; color:var(--muted); font-size:12px; text-align:center; line-height:1.7}
+  footer a{color:var(--accent); text-decoration:none}
+  .sec-title{display:flex; justify-content:space-between; align-items:baseline}
+  .sec-title small{color:var(--muted); font-weight:500; font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🏠 Какво жилище мога да си позволя?</h1>
+    <p>Въведете доходите си и вижте за какъв апартамент ще стигне една ипотека в България.</p>
+  </header>
+
+  <div class="grid">
+    <!-- ───────────── ВХОДНИ ДАННИ ───────────── -->
+    <div>
+      <div class="card">
+        <h2>Доходи и кредит</h2>
+        <div class="row">
+          <div class="field">
+            <label>Ваш чист месечен доход</label>
+            <div class="suffix"><input type="number" id="income1" value="2000" min="0" step="50"><span>€</span></div>
+          </div>
+          <div class="field">
+            <label>Доход на партньора (ако сте двама)</label>
+            <div class="suffix"><input type="number" id="income2" value="0" min="0" step="50"><span>€</span></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Срок</label>
+            <div class="suffix"><input type="number" id="years" value="30" min="1" max="40" step="1"><span>год.</span></div>
+          </div>
+          <div class="field">
+            <label>Годишна лихва</label>
+            <div class="suffix"><input type="number" id="rate" value="3" min="0" max="20" step="0.1"><span>%</span></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Самоучастие</label>
+            <div class="suffix"><input type="number" id="downPct" value="15" min="0" max="90" step="1"><span>%</span></div>
+          </div>
+          <div class="field">
+            <label>Таван на вноската (% от дохода)</label>
+            <div class="suffix"><input type="number" id="bankCap" value="40" min="10" max="50" step="1"><span>%</span></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Град</label>
+            <select id="city"></select>
+          </div>
+          <div class="field">
+            <label>Цена на м²</label>
+            <div class="suffix"><input type="number" id="eurM2" value="2400" min="200" step="50"><span>€</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title"><h2>Месечни разходи</h2><small id="pctTotal">— % от дохода</small></div>
+        <div class="hint">Числата са по данни на НСИ за разходите на домакинствата (2025 г.). Нагласете ги както е при вас.</div>
+        <div id="sliders"></div>
+      </div>
+
+      <div class="card">
+        <h2>Постоянни месечни разходи (€)</h2>
+        <div class="hint">Точни суми, а не проценти — напр. училище 800, кредит за кола 200.</div>
+        <div id="fixedList"></div>
+        <button class="btn btn-ghost" id="addFixed">+ Добави разход</button>
+      </div>
+    </div>
+
+    <!-- ───────────── РЕЗУЛТАТИ ───────────── -->
+    <div>
+      <div class="card">
+        <h2>Какво можете да си позволите</h2>
+        <div class="headline">
+          <div class="price" id="priceOut">—</div>
+          <div class="apt" id="aptOut"></div>
+        </div>
+        <div id="notes"></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Месечна вноска</div><div class="v" id="payOut">—</div></div>
+          <div class="stat"><div class="k">Размер на кредита</div><div class="v" id="loanOut">—</div></div>
+          <div class="stat"><div class="k">Самоучастие (свои пари)</div><div class="v" id="downOut">—</div></div>
+          <div class="stat"><div class="k">Обща лихва за срока</div><div class="v" id="interestOut">—</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Накъде отиват парите ви</h2>
+        <div class="bar" id="bar"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="card">
+        <h2>Остатък по кредита във времето</h2>
+        <div class="chart-wrap"><svg id="chart" viewBox="0 0 600 240" preserveAspectRatio="none"></svg></div>
+        <div class="tbl-label">Годишна погасителна таблица</div>
+        <div class="tbl-scroll">
+          <table id="amortTable">
+            <thead><tr><th>Година</th><th>Платено</th><th>Лихва</th><th>Главница</th><th>Остатък</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Само ориентировъчно, не е финансов съвет. Банките обикновено разрешават вноска до 40% от чистия доход (по закон — най-много 50%; България, 2025 г.).
+    Разходите са по данни на НСИ за домакинствата (2025 г.). София — около €2 400/кв.м (от €1 250 до над €4 000).<br>
+    Калкулаторът е създаден от <a href="https://bisko.be" target="_blank" rel="noopener">Бисер Перчинков</a> · <a href="https://www.linkedin.com/in/bisko/" target="_blank" rel="noopener">LinkedIn</a>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ── Справочни данни ─────────────────────────────────────────────
+  const CITIES = {
+    "София": 2400, "Пловдив": 1500, "Варна": 1750, "Бургас": 1500,
+    "Стара Загора": 1100, "Русе": 1100, "Средно за страната": 1400, "Друг": null
+  };
+  // Разходи по подразбиране (% от НЕТНИЯ доход). label, sub, key, default %
+  const CATS = [
+    { key:"food",      label:"Храна",     sub:"магазин, ресторанти",      def:30 },
+    { key:"utilities", label:"Сметки",    sub:"ток, вода, парно, нет",     def:10 },
+    { key:"transport", label:"Транспорт", sub:"гориво, билети, телефон",   def:11 },
+    { key:"other",     label:"Други",     sub:"дрехи, здраве, забавления", def:10 },
+  ];
+
+  const $ = id => document.getElementById(id);
+  const eur = new Intl.NumberFormat('bg-BG',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+  const num = new Intl.NumberFormat('bg-BG',{maximumFractionDigits:0});
+  const fmtEUR = n => isFinite(n) ? eur.format(Math.max(0,Math.round(n))) : '—';
+  const fmtM2  = n => isFinite(n) ? num.format(Math.round(n)) : '—';
+
+  function roomLabel(m2){
+    if(!isFinite(m2) || m2<=0) return "—";
+    if(m2 < 42)  return "едностаен (студио)";
+    if(m2 < 63)  return "двустаен";
+    if(m2 < 88)  return "тристаен";
+    if(m2 < 115) return "четиристаен";
+    return "многостаен (5+ стаи)";
+  }
+
+  // ── Падащо меню за градове ──────────────────────────────────────
+  const citySel = $('city');
+  Object.keys(CITIES).forEach(c=>{
+    const o=document.createElement('option'); o.value=c; o.textContent=c; citySel.appendChild(o);
+  });
+  citySel.value = "София";
+  citySel.addEventListener('change',()=>{
+    const v = CITIES[citySel.value];
+    if(v!==null){ $('eurM2').value = v; }
+    recalc();
+  });
+  $('eurM2').addEventListener('input',()=>{
+    // ръчна промяна на цената превключва менюто на „Друг“
+    if(CITIES[citySel.value] !== Number($('eurM2').value)) citySel.value = "Друг";
+  });
+
+  // ── Плъзгачи за разходите ───────────────────────────────────────
+  const slidersEl = $('sliders');
+  CATS.forEach(c=>{
+    const row=document.createElement('div'); row.className='slider-row';
+    row.innerHTML =
+      '<div class="lbl">'+c.label+'<b>'+c.sub+'</b></div>'+
+      '<input type="range" min="0" max="60" step="1" value="'+c.def+'" id="sl_'+c.key+'">'+
+      '<div class="val"><span class="pct" id="pc_'+c.key+'">'+c.def+'%</span>'+
+      '<span class="eur" id="ev_'+c.key+'">—</span></div>';
+    slidersEl.appendChild(row);
+    $('sl_'+c.key).addEventListener('input',recalc);
+  });
+
+  // ── Фиксирани разходи ───────────────────────────────────────────
+  const fixedList = $('fixedList');
+  function addFixedRow(label, amount){
+    const row=document.createElement('div'); row.className='fixed-row';
+    row.innerHTML =
+      '<input type="text" class="fx-label" placeholder="напр. Училище" value="'+(label||'')+'">'+
+      '<div class="suffix"><input type="number" class="fx-amt" min="0" step="10" placeholder="0" value="'+(amount!=null?amount:'')+'"><span>€</span></div>'+
+      '<button class="btn-x" title="премахни">×</button>';
+    row.querySelector('.btn-x').addEventListener('click',()=>{ row.remove(); recalc(); });
+    row.querySelector('.fx-amt').addEventListener('input',recalc);
+    fixedList.appendChild(row);
+  }
+  $('addFixed').addEventListener('click',()=>{ addFixedRow('',''); });
+  addFixedRow('Училище', 0); // примерен ред
+
+  // ── Четене на входните данни ────────────────────────────────────
+  function val(id){ const v=parseFloat($(id).value); return isFinite(v)?v:0; }
+  function readInputs(){
+    const inp = {
+      income: val('income1') + val('income2'),
+      years: Math.max(1, val('years')),
+      rate: Math.max(0, val('rate')),
+      downPct: Math.min(95, Math.max(0, val('downPct'))),
+      bankCap: Math.min(50, Math.max(0, val('bankCap'))),
+      eurM2: Math.max(0, val('eurM2')),
+      pct: {}, fixed: [], fixedSum: 0
+    };
+    CATS.forEach(c=>{ inp.pct[c.key] = val('sl_'+c.key); });
+    fixedList.querySelectorAll('.fixed-row').forEach(r=>{
+      const a = parseFloat(r.querySelector('.fx-amt').value)||0;
+      inp.fixed.push({ label: r.querySelector('.fx-label').value || 'Разход', amount: a });
+      inp.fixedSum += a;
+    });
+    return inp;
+  }
+
+  // ── Основно изчисление ──────────────────────────────────────────
+  function compute(inp){
+    const pctSum = CATS.reduce((a,c)=>a+inp.pct[c.key],0);              // %
+    const pctExpenses = inp.income * pctSum/100;
+    const afterExpenses = inp.income - pctExpenses - inp.fixedSum;
+    const bankMax = inp.income * inp.bankCap/100;
+    const maxPayment = Math.max(0, Math.min(afterExpenses, bankMax));
+
+    let binding = 'budget';
+    if(afterExpenses <= 0) binding = 'none';
+    else if(bankMax < afterExpenses) binding = 'bank';
+
+    const i = inp.rate/100/12;
+    const n = inp.years*12;
+    const loan = i===0 ? maxPayment*n : maxPayment*(1-Math.pow(1+i,-n))/i;
+    const d = inp.downPct/100;
+    const price = d<1 ? loan/(1-d) : loan;
+    const downCash = price - loan;
+    const m2 = inp.eurM2>0 ? price/inp.eurM2 : 0;
+    const totalInterest = maxPayment*n - loan;
+
+    return { pctSum, pctExpenses, afterExpenses, bankMax, maxPayment, binding,
+             i, n, loan, price, downCash, m2, totalInterest,
+             unused: Math.max(0, afterExpenses - maxPayment) };
+  }
+
+  // ── Погасителен план (месечно → годишно) ────────────────────────
+  function yearlySchedule(loan, payment, i, years){
+    const rows=[]; let bal=loan;
+    for(let y=1; y<=years; y++){
+      let paid=0, interestY=0, principalY=0;
+      for(let m=0;m<12;m++){
+        if(bal<=0) break;
+        const interest = i===0 ? 0 : bal*i;
+        let principal = payment - interest;
+        if(principal > bal) principal = bal;
+        bal -= principal; paid += principal+interest; interestY += interest; principalY += principal;
+      }
+      rows.push({ y, paid, interest:interestY, principal:principalY, bal:Math.max(0,bal) });
+      if(bal<=0) break;
+    }
+    return rows;
+  }
+
+  // ── Извеждане ───────────────────────────────────────────────────
+  function recalc(){
+    const inp = readInputs();
+    const r = compute(inp);
+
+    // живо € до всеки плъзгач + общ %
+    CATS.forEach(c=>{
+      $('pc_'+c.key).textContent = inp.pct[c.key]+'%';
+      $('ev_'+c.key).textContent = fmtEUR(inp.income*inp.pct[c.key]/100);
+    });
+    $('pctTotal').textContent = r.pctSum + '% от дохода';
+
+    // заглавен резултат
+    $('priceOut').innerHTML = r.maxPayment>0
+      ? fmtEUR(r.price) + ' <small>макс.</small>'
+      : '—';
+    $('aptOut').innerHTML = r.maxPayment>0
+      ? '≈ <span class="room">'+fmtM2(r.m2)+' м²</span> · '+roomLabel(r.m2)+' в '+citySel.value
+      : 'Доходът не стига за ипотека';
+
+    // показатели
+    $('payOut').textContent      = fmtEUR(r.maxPayment);
+    $('loanOut').textContent     = fmtEUR(r.loan);
+    $('downOut').textContent     = fmtEUR(r.downCash);
+    $('interestOut').textContent = fmtEUR(r.totalInterest);
+
+    // бележки
+    const notes = $('notes'); notes.innerHTML='';
+    if(r.binding==='none'){
+      notes.appendChild(note('danger','⚠️','Разходите ви ('+fmtEUR(inp.pctExpenses+inp.fixedSum)+
+        ' на месец) поглъщат целия доход от '+fmtEUR(inp.income)+' — не остава нищо за ипотека.'));
+    } else if(r.binding==='bank'){
+      notes.appendChild(note('bank','🏦','Спира ви <b>банката</b>, не бюджетът ви. Бихте могли да отделяте '+
+        fmtEUR(r.afterExpenses)+' на месец, но банка дава кредит до '+inp.bankCap+'% от чистия доход ('+
+        fmtEUR(r.bankMax)+' на месец). Остават неизползвани '+fmtEUR(r.unused)+' на месец.'));
+    } else {
+      notes.appendChild(note('info','💸','Спират ви <b>разходите</b>, не банката. След тях остават '+
+        fmtEUR(r.maxPayment)+' на месец за вноска — под тавана от '+inp.bankCap+'%, който банка би ви отпуснала ('+
+        fmtEUR(r.bankMax)+' на месец).'));
+    }
+
+    renderBreakdown(inp, r);
+    renderChart(r);
+    renderTable(r);
+  }
+
+  function note(kind, ic, html){
+    const d=document.createElement('div'); d.className='note '+kind;
+    d.innerHTML='<span class="ic">'+ic+'</span><div>'+html+'</div>'; return d;
+  }
+
+  function renderBreakdown(inp, r){
+    const inc = inp.income || 1;
+    const segs = [
+      { k:'Храна',       v:inp.income*inp.pct.food/100,      col:'var(--food)' },
+      { k:'Сметки',      v:inp.income*inp.pct.utilities/100, col:'var(--util)' },
+      { k:'Транспорт',   v:inp.income*inp.pct.transport/100, col:'var(--trans)' },
+      { k:'Други',       v:inp.income*inp.pct.other/100,     col:'var(--other)' },
+      { k:'Постоянни',   v:inp.fixedSum,                     col:'var(--fixed)' },
+      { k:'Ипотека',     v:r.maxPayment,                     col:'var(--mort)' },
+      { k:'Свободни',    v:r.unused,                         col:'var(--unused)' },
+    ];
+    const bar=$('bar'); bar.innerHTML='';
+    const legend=$('legend'); legend.innerHTML='';
+    segs.forEach(s=>{
+      if(s.v<=0) return;
+      const pct = Math.min(100, s.v/inc*100);
+      const span=document.createElement('span');
+      span.style.width=pct+'%'; span.style.background=s.col;
+      span.title=s.k+': '+fmtEUR(s.v)+' ('+pct.toFixed(0)+'%)';
+      bar.appendChild(span);
+      const item=document.createElement('div'); item.className='item';
+      item.innerHTML='<span class="dot" style="background:'+s.col+'"></span>'+s.k+
+        ' <b>'+fmtEUR(s.v)+'</b>';
+      legend.appendChild(item);
+    });
+  }
+
+  function renderChart(r){
+    const svg=$('chart');
+    const W=600,H=240, padL=8,padR=8,padT=14,padB=22;
+    svg.innerHTML='';
+    if(r.maxPayment<=0 || r.loan<=0){
+      svg.innerHTML='<text x="300" y="120" fill="#9aa0bd" font-size="14" text-anchor="middle">Няма ипотека за показване</text>';
+      return;
+    }
+    const sched = yearlySchedule(r.loan, r.maxPayment, r.i, Math.round(r.n/12));
+    const pts = [{x:0,bal:r.loan}].concat(sched.map(s=>({x:s.y,bal:s.bal})));
+    const maxYr = pts[pts.length-1].x;
+    const maxBal = r.loan;
+    const X = x => padL + (x/maxYr)*(W-padL-padR);
+    const Y = b => padT + (1 - b/maxBal)*(H-padT-padB);
+
+    // мрежа + етикети по Y (0…100%)
+    let g='';
+    [0,0.25,0.5,0.75,1].forEach(f=>{
+      const y=Y(maxBal*f);
+      g+='<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#2a2f4a" stroke-width="1"/>';
+      g+='<text x="'+(W-padR)+'" y="'+(y-3)+'" fill="#6b7194" font-size="10" text-anchor="end">'+fmtEUR(maxBal*f)+'</text>';
+    });
+    // етикети по X на ~5 год.
+    for(let yr=0; yr<=maxYr; yr+=5){
+      g+='<text x="'+X(yr)+'" y="'+(H-6)+'" fill="#6b7194" font-size="10" text-anchor="middle">'+yr+'г</text>';
+    }
+    // площ + линия
+    let line = pts.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+' '+Y(p.bal).toFixed(1)).join(' ');
+    let area = line + ' L '+X(maxYr).toFixed(1)+' '+Y(0).toFixed(1)+' L '+X(0).toFixed(1)+' '+Y(0).toFixed(1)+' Z';
+    svg.innerHTML =
+      '<defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0%" stop-color="#34d399" stop-opacity="0.35"/>'+
+      '<stop offset="100%" stop-color="#34d399" stop-opacity="0"/></linearGradient></defs>'+
+      g +
+      '<path d="'+area+'" fill="url(#grad)"/>'+
+      '<path d="'+line+'" fill="none" stroke="#34d399" stroke-width="2.5"/>';
+  }
+
+  function renderTable(r){
+    const tb=$('amortTable').querySelector('tbody'); tb.innerHTML='';
+    if(r.maxPayment<=0 || r.loan<=0){ return; }
+    const sched = yearlySchedule(r.loan, r.maxPayment, r.i, Math.round(r.n/12));
+    sched.forEach(s=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td>'+s.y+'</td><td>'+fmtEUR(s.paid)+'</td><td>'+fmtEUR(s.interest)+
+        '</td><td>'+fmtEUR(s.principal)+'</td><td>'+fmtEUR(s.bal)+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  // ── Свързване на останалите полета и първоначално извеждане ──────
+  ['income1','income2','years','rate','downPct','bankCap','eurM2'].forEach(id=>{
+    $(id).addEventListener('input',recalc);
+  });
+  recalc();
+})();
+</script>
+</body>
+</html>
