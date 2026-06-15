@@ -10,7 +10,7 @@
     --text:#e8eaf2; --muted:#9aa0bd; --accent:#5b8cff; --accent-2:#34d399;
     --warn:#fbbf24; --danger:#f87171; --radius:14px;
     --food:#f97316; --util:#38bdf8; --trans:#a78bfa; --other:#f472b6;
-    --fixed:#facc15; --mort:#34d399; --unused:#475569;
+    --fixed:#facc15; --save:#2dd4bf; --mort:#34d399; --unused:#475569;
     --shadow:0 10px 30px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box}
@@ -37,6 +37,10 @@
     border-radius:10px; padding:10px 12px; font-size:15px; outline:none; transition:border-color .15s;
   }
   input:focus, select:focus{border-color:var(--accent)}
+  /* скрий нативните стрелки на числовите полета — да не застъпват текста и мерната единица */
+  input[type=number]{-moz-appearance:textfield; appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
   .suffix{position:relative}
   .suffix span{position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none}
   .suffix input{padding-right:36px}
@@ -44,15 +48,29 @@
   .slider-row{display:flex; align-items:center; gap:12px; margin-bottom:12px}
   .slider-row .lbl{flex:1 1 auto; font-size:14px}
   .slider-row .lbl b{display:block; font-size:11px; color:var(--muted); font-weight:500; margin-top:1px}
-  .slider-row input[type=range]{flex:1 1 120px; accent-color:var(--accent); height:4px}
-  .slider-row .val{flex:0 0 96px; text-align:right; font-variant-numeric:tabular-nums}
-  .slider-row .val .pct{font-weight:700}
-  .slider-row .val .eur{display:block; font-size:11px; color:var(--muted)}
+  .slider-row input[type=range]{flex:1 1 90px; accent-color:var(--accent); height:4px}
+  .slider-row .val{flex:0 0 104px; text-align:right}
+  .slider-row .val .ev-wrap{position:relative}
+  .slider-row .val .ev{width:100%; padding:6px 22px 6px 8px; font-size:13px; text-align:right;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px;
+    font-variant-numeric:tabular-nums; -moz-appearance:textfield}
+  .slider-row .val .ev:focus{border-color:var(--accent); outline:none}
+  .slider-row .val .ev::-webkit-outer-spin-button,
+  .slider-row .val .ev::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+  .slider-row .val .ev-wrap > span{position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    font-size:12px; color:var(--muted); pointer-events:none}
+  .slider-row .val .pct{display:block; font-size:11px; color:var(--muted); font-weight:600; margin-top:3px}
   /* фиксирани разходи */
   .fixed-row{display:flex; gap:8px; margin-bottom:8px; align-items:center}
   .fixed-row input.fx-label{flex:2}
   .fixed-row .suffix{flex:1}
   .fixed-row button{flex:0 0 auto}
+  /* спестявания */
+  .saving-row{display:flex; gap:8px; margin-bottom:8px; align-items:center}
+  .saving-row .sv-label{flex:1.6; min-width:0}
+  .saving-row .sv-amt-w{flex:1.1; min-width:0}
+  .saving-row .sv-rate-w{flex:0 0 78px}
+  .saving-row button{flex:0 0 auto}
   .btn{background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:10px;
     padding:9px 12px; font-size:14px; cursor:pointer; transition:.15s}
   .btn:hover{border-color:var(--accent)}
@@ -60,6 +78,8 @@
   .btn-x{background:transparent; border:1px solid var(--line); color:var(--muted); width:38px; height:38px; border-radius:10px; cursor:pointer; font-size:16px}
   .btn-x:hover{border-color:var(--danger); color:var(--danger)}
   .hint{font-size:12px; color:var(--muted); margin:-2px 0 10px}
+  .hint a{color:var(--accent); text-decoration:none}
+  .hint a:hover{text-decoration:underline}
   /* резултати */
   .headline{text-align:center; padding:8px 0 4px}
   .headline .price{font-size:46px; font-weight:800; letter-spacing:-.03em; line-height:1.05; color:#fff}
@@ -146,7 +166,7 @@
             <div class="suffix"><input type="number" id="years" value="30" min="1" max="40" step="1"><span>год.</span></div>
           </div>
           <div class="field">
-            <label>Годишна лихва</label>
+            <label>Годишна лихва / ГПР</label>
             <div class="suffix"><input type="number" id="rate" value="3" min="0" max="20" step="0.1"><span>%</span></div>
           </div>
         </div>
@@ -178,8 +198,8 @@
 
       <div class="card">
         <div class="sec-title"><h2>Месечни разходи</h2><small id="pctTotal">— % от дохода</small></div>
-        <div class="hint">Числата са по данни на НСИ за разходите на домакинствата (2025 г.). Нагласете ги както е при вас.</div>
         <div id="sliders"></div>
+        <div class="hint" style="margin-top:10px">Началните стойности са по данни на <a href="https://www.nsi.bg/node/3168/" target="_blank" rel="noopener">НСИ</a> за разходите на домакинствата (2025 г.).</div>
       </div>
 
       <div class="card">
@@ -187,6 +207,13 @@
         <div class="hint">Точни суми, а не проценти — напр. училище 800, кредит за кола 200.</div>
         <div id="fixedList"></div>
         <button class="btn btn-ghost" id="addFixed">+ Добави разход</button>
+      </div>
+
+      <div class="card">
+        <h2>Спестявания</h2>
+        <div class="hint">Заделяте ги вместо вноска, но растат с годишна доходност. Всеки ред: име, сума на месец и очаквана годишна доходност (%).</div>
+        <div id="savingsList"></div>
+        <button class="btn btn-ghost" id="addSaving">+ Добави спестяване</button>
       </div>
     </div>
 
@@ -204,6 +231,7 @@
           <div class="stat"><div class="k">Размер на кредита</div><div class="v" id="loanOut">—</div></div>
           <div class="stat"><div class="k">Самоучастие (свои пари)</div><div class="v" id="downOut">—</div></div>
           <div class="stat"><div class="k">Обща лихва за срока</div><div class="v" id="interestOut">—</div></div>
+          <div class="stat"><div class="k">Спестено за срока</div><div class="v" id="saveOut">—</div></div>
         </div>
       </div>
 
@@ -220,6 +248,17 @@
         <div class="tbl-scroll">
           <table id="amortTable">
             <thead><tr><th>Година</th><th>Платено</th><th>Лихва</th><th>Главница</th><th>Остатък</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Спестявания през годините</h2>
+        <div class="hint" id="savingsEmpty">Добавете месечна сума и очаквана доходност в раздел „Спестявания“, за да видите как растат парите ви за срока.</div>
+        <div class="tbl-scroll" id="savingsWrap" style="display:none">
+          <table id="savingsTable">
+            <thead><tr><th>Година</th><th>Вноски</th><th>Доходност</th><th>Общо</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -283,16 +322,33 @@
   });
 
   // ── Плъзгачи за разходите ───────────────────────────────────────
+  // Източник на истината за разходите по категории — процент от дохода.
+  const state = { pct:{} };
+  CATS.forEach(c=>{ state.pct[c.key] = c.def; });
+  const income = () => val('income1') + val('income2');
+
   const slidersEl = $('sliders');
   CATS.forEach(c=>{
     const row=document.createElement('div'); row.className='slider-row';
     row.innerHTML =
       '<div class="lbl">'+c.label+'<b>'+c.sub+'</b></div>'+
-      '<input type="range" min="0" max="60" step="1" value="'+c.def+'" id="sl_'+c.key+'">'+
-      '<div class="val"><span class="pct" id="pc_'+c.key+'">'+c.def+'%</span>'+
-      '<span class="eur" id="ev_'+c.key+'">—</span></div>';
+      '<input type="range" min="0" max="100" step="1" value="'+c.def+'" id="sl_'+c.key+'">'+
+      '<div class="val">'+
+        '<div class="ev-wrap"><input type="number" class="ev" id="ev_'+c.key+'" min="0" step="10" inputmode="numeric"><span>€</span></div>'+
+        '<span class="pct" id="pc_'+c.key+'">'+c.def+'%</span>'+
+      '</div>';
     slidersEl.appendChild(row);
-    $('sl_'+c.key).addEventListener('input',recalc);
+    // плъзгач → процент
+    $('sl_'+c.key).addEventListener('input',()=>{
+      state.pct[c.key] = Number($('sl_'+c.key).value);
+      recalc();
+    });
+    // твърда сума в € → процент (спрямо текущия доход)
+    $('ev_'+c.key).addEventListener('input',()=>{
+      const inc = income(), amt = Number($('ev_'+c.key).value)||0;
+      state.pct[c.key] = inc>0 ? Math.min(100, amt/inc*100) : 0;
+      recalc();
+    });
   });
 
   // ── Фиксирани разходи ───────────────────────────────────────────
@@ -310,6 +366,23 @@
   $('addFixed').addEventListener('click',()=>{ addFixedRow('',''); });
   addFixedRow('Училище', 0); // примерен ред
 
+  // ── Спестявания (сума/месец + годишна доходност) ────────────────
+  const savingsList = $('savingsList');
+  function addSavingRow(label, amount, rate){
+    const row=document.createElement('div'); row.className='saving-row';
+    row.innerHTML =
+      '<input type="text" class="sv-label" placeholder="напр. ETF / депозит" value="'+(label||'')+'">'+
+      '<div class="suffix sv-amt-w"><input type="number" class="sv-amt" min="0" step="10" placeholder="0" value="'+(amount!=null?amount:'')+'"><span>€</span></div>'+
+      '<div class="suffix sv-rate-w"><input type="number" class="sv-rate" min="0" step="0.5" placeholder="0" value="'+(rate!=null?rate:'')+'"><span>%</span></div>'+
+      '<button class="btn-x" title="премахни">×</button>';
+    row.querySelector('.btn-x').addEventListener('click',()=>{ row.remove(); recalc(); });
+    row.querySelector('.sv-amt').addEventListener('input',recalc);
+    row.querySelector('.sv-rate').addEventListener('input',recalc);
+    savingsList.appendChild(row);
+  }
+  $('addSaving').addEventListener('click',()=>{ addSavingRow('','',''); });
+  addSavingRow('Инвестиции', 0, 7); // примерен ред
+
   // ── Четене на входните данни ────────────────────────────────────
   function val(id){ const v=parseFloat($(id).value); return isFinite(v)?v:0; }
   function readInputs(){
@@ -320,13 +393,19 @@
       downPct: Math.min(95, Math.max(0, val('downPct'))),
       bankCap: Math.min(50, Math.max(0, val('bankCap'))),
       eurM2: Math.max(0, val('eurM2')),
-      pct: {}, fixed: [], fixedSum: 0
+      pct: {}, fixed: [], fixedSum: 0, savings: [], savingsSum: 0
     };
-    CATS.forEach(c=>{ inp.pct[c.key] = val('sl_'+c.key); });
+    CATS.forEach(c=>{ inp.pct[c.key] = state.pct[c.key]; });
     fixedList.querySelectorAll('.fixed-row').forEach(r=>{
       const a = parseFloat(r.querySelector('.fx-amt').value)||0;
       inp.fixed.push({ label: r.querySelector('.fx-label').value || 'Разход', amount: a });
       inp.fixedSum += a;
+    });
+    savingsList.querySelectorAll('.saving-row').forEach(r=>{
+      const a = parseFloat(r.querySelector('.sv-amt').value)||0;
+      const rate = parseFloat(r.querySelector('.sv-rate').value)||0;
+      inp.savings.push({ label: r.querySelector('.sv-label').value || 'Спестяване', amount:a, rate:rate });
+      inp.savingsSum += a;
     });
     return inp;
   }
@@ -335,7 +414,7 @@
   function compute(inp){
     const pctSum = CATS.reduce((a,c)=>a+inp.pct[c.key],0);              // %
     const pctExpenses = inp.income * pctSum/100;
-    const afterExpenses = inp.income - pctExpenses - inp.fixedSum;
+    const afterExpenses = inp.income - pctExpenses - inp.fixedSum - inp.savingsSum;
     const bankMax = inp.income * inp.bankCap/100;
     const maxPayment = Math.max(0, Math.min(afterExpenses, bankMax));
 
@@ -375,17 +454,36 @@
     return rows;
   }
 
+  // ── Натрупване на спестяванията (сложна лихва, месечно) ──────────
+  function savingsSchedule(streams, years){
+    const rows=[]; const bals = streams.map(()=>0); let contrib=0;
+    const monthly = streams.reduce((a,s)=>a+s.amount,0);
+    for(let y=1; y<=years; y++){
+      for(let m=0;m<12;m++){
+        streams.forEach((s,i)=>{ const r=s.rate/100/12; bals[i] = bals[i]*(1+r) + s.amount; });
+        contrib += monthly;
+      }
+      const total = bals.reduce((a,b)=>a+b,0);
+      rows.push({ y, contrib, growth: total-contrib, total });
+    }
+    return rows;
+  }
+
   // ── Извеждане ───────────────────────────────────────────────────
   function recalc(){
     const inp = readInputs();
     const r = compute(inp);
 
-    // живо € до всеки плъзгач + общ %
+    // синхронизирай € сумата и процента за всяка категория (без да късаш активното поле)
     CATS.forEach(c=>{
-      $('pc_'+c.key).textContent = inp.pct[c.key]+'%';
-      $('ev_'+c.key).textContent = fmtEUR(inp.income*inp.pct[c.key]/100);
+      const pct = inp.pct[c.key];
+      $('pc_'+c.key).textContent = Math.round(pct)+'%';
+      const ev = $('ev_'+c.key);
+      if(document.activeElement !== ev) ev.value = Math.round(inp.income*pct/100);
+      const sl = $('sl_'+c.key);
+      if(document.activeElement !== sl) sl.value = Math.min(100, pct);
     });
-    $('pctTotal').textContent = r.pctSum + '% от дохода';
+    $('pctTotal').textContent = Math.round(r.pctSum) + '% от дохода';
 
     // заглавен резултат
     $('priceOut').innerHTML = r.maxPayment>0
@@ -408,13 +506,21 @@
     // бележки — само предупреждение, ако не остава нищо за ипотека
     const notes = $('notes'); notes.innerHTML='';
     if(r.binding==='none'){
-      notes.appendChild(note('danger','⚠️','Разходите ви ('+fmtEUR(inp.pctExpenses+inp.fixedSum)+
+      notes.appendChild(note('danger','⚠️','Разходите и спестяванията ви ('+fmtEUR(inp.pctExpenses+inp.fixedSum+inp.savingsSum)+
         ' на месец) поглъщат целия доход от '+fmtEUR(inp.income)+' — не остава нищо за ипотека.'));
     }
 
     renderBreakdown(inp, r);
     renderChart(r);
     renderTable(r);
+
+    // спестявания
+    const sav = savingsSchedule(inp.savings, inp.years);
+    const last = sav.length ? sav[sav.length-1] : { total:0, growth:0 };
+    $('saveOut').innerHTML = inp.savingsSum>0
+      ? fmtEUR(last.total) + (last.growth>0 ? ' <span class="sub">от тях +'+fmtEUR(last.growth)+' доходност</span>' : '')
+      : '—';
+    renderSavingsTable(sav, inp.savingsSum>0);
   }
 
   function note(kind, ic, html){
@@ -430,6 +536,7 @@
       { k:'Транспорт',   v:inp.income*inp.pct.transport/100, col:'var(--trans)' },
       { k:'Други',       v:inp.income*inp.pct.other/100,     col:'var(--other)' },
       { k:'Постоянни',   v:inp.fixedSum,                     col:'var(--fixed)' },
+      { k:'Спестявания', v:inp.savingsSum,                   col:'var(--save)' },
       { k:'Ипотека',     v:r.maxPayment,                     col:'var(--mort)' },
       { k:'Свободни',    v:r.unused,                         col:'var(--unused)' },
     ];
@@ -495,6 +602,18 @@
       const tr=document.createElement('tr');
       tr.innerHTML='<td>'+s.y+'</td><td>'+fmtEUR(s.paid)+'</td><td>'+fmtEUR(s.interest)+
         '</td><td>'+fmtEUR(s.principal)+'</td><td>'+fmtEUR(s.bal)+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  function renderSavingsTable(sav, has){
+    const empty=$('savingsEmpty'), wrap=$('savingsWrap');
+    if(!has){ empty.style.display=''; wrap.style.display='none'; return; }
+    empty.style.display='none'; wrap.style.display='';
+    const tb=$('savingsTable').querySelector('tbody'); tb.innerHTML='';
+    sav.forEach(s=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td>'+s.y+'</td><td>'+fmtEUR(s.contrib)+'</td><td>'+fmtEUR(s.growth)+'</td><td>'+fmtEUR(s.total)+'</td>';
       tb.appendChild(tr);
     });
   }
